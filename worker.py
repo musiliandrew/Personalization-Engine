@@ -1,0 +1,63 @@
+import os
+from celery import Celery
+from database import SessionLocal
+from models import UserMemory
+from services.vector_db import (
+    embed_text,
+    ensure_user_memories_collection,
+    upsert_user_memory,
+    delete_user_memory
+)
+
+redis_url = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+
+celery_app = Celery(
+    "personalization_worker",
+    broker=redis_url,
+    backend=redis_url
+)
+
+@celery_app.task(name="personalization.sync_user_memory_task")
+def sync_user_memory_task(memory_id: str):
+    db = SessionLocal()
+    try:
+        memory = db.query(UserMemory).filter_by(id=memory_id).first()
+        if not memory:
+            return {"memory_id": memory_id, "status": "missing"}
+
+        point_id = str(memory.qdrant_point_id or memory.id)
+        if not memory.is_active:
+            delete_user_memory(point_id)
+            if memory.qdrant_point_id:
+                memory.qdrant_point_id = None
+                db.commit()
+            return {"memory_id": memory_id, "status": "deleted"}
+
+        vector = embed_text(memory.text)
+        ensure_user_memories_collection(vector_size=len(vector))
+
+        payload = {
+            "user_id": str(memory.user_id),
+            "memory_id": str(memory.id),
+            "memory_type": memory.memory_type,
+            "source": memory.source,
+            "source_object_type": memory.source_object_type,
+            "source_object_id": memory.source_object_id,
+            "confidence": float(memory.confidence),
+            "importance": float(memory.importance),
+            "is_core": memory.is_core,
+            "is_active": memory.is_active,
+            "created_at": memory.created_at.isoformat() if memory.created_at else None,
+            "updated_at": memory.updated_at.isoformat() if memory.updated_at else None,
+            "last_reinforced_at": memory.last_reinforced_at.isoformat() if memory.last_reinforced_at else None,
+            "metadata": memory.metadata_ or {},
+        }
+        upsert_user_memory(point_id=point_id, vector=vector, payload=payload)
+
+        if memory.qdrant_point_id != point_id:
+            memory.qdrant_point_id = point_id
+            db.commit()
+
+        return {"memory_id": memory_id, "status": "synced", "vector_size": len(vector)}
+    finally:
+        db.close()
