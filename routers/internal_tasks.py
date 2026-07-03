@@ -1,5 +1,7 @@
-import os
-from celery import Celery
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+import logging
+
 from database import SessionLocal
 from models import UserMemory
 from services.vector_db import (
@@ -9,16 +11,16 @@ from services.vector_db import (
     delete_user_memory
 )
 
-redis_url = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+logger = logging.getLogger(__name__)
 
-celery_app = Celery(
-    "personalization_worker",
-    broker=redis_url,
-    backend=redis_url
-)
+router = APIRouter(prefix="/internal/tasks", tags=["internal"])
 
-@celery_app.task(name="personalization.sync_user_memory_task")
-def sync_user_memory_task(memory_id: str):
+class SyncMemoryRequest(BaseModel):
+    memory_id: str
+
+@router.post("/sync-memory")
+def sync_user_memory(request: SyncMemoryRequest):
+    memory_id = request.memory_id
     db = SessionLocal()
     try:
         memory = db.query(UserMemory).filter_by(id=memory_id).first()
@@ -59,5 +61,8 @@ def sync_user_memory_task(memory_id: str):
             db.commit()
 
         return {"memory_id": memory_id, "status": "synced", "vector_size": len(vector)}
+    except Exception as e:
+        logger.error(f"Error syncing memory {memory_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
