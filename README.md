@@ -1,13 +1,13 @@
-# CareerScoper Personalization System
+# Vector Personalization System
 
-The Personalization System is a **standalone FastAPI microservice** that powers the dynamic, user-specific data layers of the CareerScoper platform. It manages user memories, vector embeddings, and aggregates complex personalized data structures (like the Mission Control Dashboard and Company Intelligence Roadmaps).
+A **standalone FastAPI microservice** designed to power dynamic, user-specific data aggregation and semantic vector capabilities. It manages memory graphs, vector embeddings, and aggregates complex personalized data structures on demand.
 
 ## Architecture Overview
-This microservice operates independently of the main API gateway, specifically handling heavy analytical and vector operations that would otherwise block the primary application layer.
+This microservice isolates heavy analytical queries and vector operations from generic HTTP web servers, acting as an intelligent aggregation layer.
 
-1. **Vector Search Integration:** Natively interfaces with Google Cloud Vertex AI Vector Search to embed, store, and query user memories, skills, and semantic job requirements.
-2. **Asynchronous ORM Parsing:** Reads directly from the shared PostgreSQL database (using Django ORM in a FastAPI `run_in_threadpool`) to rapidly assemble massive, personalized JSON dashboard objects without hitting HTTP bottlenecks.
-3. **Event-Driven Memory Sync:** Listens for webhook triggers (via Google Cloud Tasks) when a user's profile updates, automatically recalculating their capabilities and syncing their context to the Vector Database.
+1. **Vector Search Integration:** Natively interfaces with Google Cloud Vertex AI Vector Search to embed, store, and query arbitrary semantic relationships (e.g. user memories or skills to external requirements).
+2. **Asynchronous Aggregation:** Reads directly from PostgreSQL using a thread-pool architecture to rapidly assemble massive, personalized JSON payloads without blocking standard async event loops.
+3. **Event-Driven Syncing:** Listens for external webhook triggers (e.g., via Google Cloud Tasks) to automatically recalculate dynamic state and sync context to the Vector Database.
 
 ## Running Locally
 
@@ -25,7 +25,6 @@ This microservice operates independently of the main API gateway, specifically h
 
 ## Key API Endpoints
 
-- **`GET /dashboard/mission-control/{user_id}`**: Retrieves the unified Mission Control payload containing recent applications, job matches, and upcoming events.
-- **`GET /dashboard/company-intelligence/{user_id}/{company_id}`**: Assembles a dynamic Company Intelligence Roadmap, comparing user skills to company tech stacks and recent news.
-- **`GET /dashboard/recommended-jobs/{user_id}`**: Performs a semantic search against the Vertex AI Vector Database to return jobs matching the user's implicit profile.
-- **`POST /internal/tasks/sync-memory`**: Internal webhook designed for Google Cloud Tasks. Syncs user updates into the canonical Memory Graph and Vector Index.
+- **`GET /dashboard/mission-control/{user_id}`**: Retrieves a unified, personalized payload containing aggregated metrics and recent relevant entities.
+- **`GET /dashboard/recommended-jobs/{user_id}`**: Performs a semantic search against the Vertex AI Vector Database to return entities matching the user's implicit profile vector.
+- **`POST /internal/tasks/sync-memory`**: Internal webhook designed for Google Cloud Tasks. Syncs payload updates into the canonical Memory Graph and Vector Index.
