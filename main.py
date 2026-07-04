@@ -2,7 +2,19 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import logging
 
-from routers import internal_tasks
+import os
+import sys
+import django
+
+# Add backend directory to sys.path to allow Django imports
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+if backend_path not in sys.path:
+    sys.path.append(backend_path)
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+django.setup()
+
+from routers import internal_tasks, dashboard
 from services.cloud_tasks import enqueue_task
 
 logging.basicConfig(level=logging.INFO)
@@ -12,6 +24,7 @@ app = FastAPI(title="CareerScoper Personalization Engine")
 
 # Include the internal tasks router
 app.include_router(internal_tasks.router)
+app.include_router(dashboard.router)
 
 class WebhookPayload(BaseModel):
     event_type: str

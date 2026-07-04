@@ -33,7 +33,7 @@ def upsert_memory(
     is_core: bool = False,
     metadata: Optional[dict[str, Any]] = None,
 ) -> UserMemory:
-    """Create or update a canonical memory, then schedule Qdrant sync."""
+    """Create or update a canonical memory, then schedule Vertex AI sync."""
 
     text = str(text or "").strip()
     if not text:
