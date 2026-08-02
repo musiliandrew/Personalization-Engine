@@ -7,7 +7,9 @@ import sys
 import django
 
 # Add backend directory to sys.path to allow Django imports
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'backend'))
+if not os.path.exists(backend_path):
+    backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 if backend_path not in sys.path:
     sys.path.append(backend_path)
 

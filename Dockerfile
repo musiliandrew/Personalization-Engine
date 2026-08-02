@@ -1,6 +1,7 @@
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=True
+ENV PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -13,4 +14,4 @@ COPY . .
 
 EXPOSE 8005
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8005", "--reload"]
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8005} --timeout-keep-alive 60
